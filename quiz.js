@@ -394,7 +394,8 @@
       '.mdaq-ccard-cta.mdaq-outline{background:none;color:'+ROJO+';border:1.5px solid '+ROJO+';padding:6.5px 14px;}',
       '.mdaq-ccard.mdaq-quiz .mdaq-ccard-cta{background:#FFF3F6;color:'+ROJO+';border:1.5px solid '+ROJO+';',
       'padding:6px 16px;font-size:13px;align-self:flex-start;}',
-      '.mdaq-pimg{width:100%;height:120px;object-fit:contain;border-radius:10px;background:#fafaf8;}',
+      '.mdaq-pimg{width:100%!important;height:110px!important;max-height:110px!important;object-fit:contain!important;border-radius:10px;background:#fafaf8;display:block;}',
+      '.mdaq-ccard.mdaq-prod{max-width:220px;}',
       '.mdaq-pprice{font-family:Fredoka,sans-serif;font-weight:700;font-size:17px;color:#2B2320;margin-top:2px;}'
     ].join('');
     document.head.appendChild(style);
@@ -719,7 +720,12 @@
           '<div class="mdaq-ccard-cta">Hacer Quiz!</div>' +
         '</div>' +
       '</div>';
-    document.body.insertBefore(cont, document.body.firstChild);
+    var header = document.querySelector('header');
+    if (header && header.parentNode){
+      header.parentNode.insertBefore(cont, header.nextSibling);
+    } else {
+      document.body.insertBefore(cont, document.body.firstChild);
+    }
     cont.querySelector('#mdaqQuizCard').addEventListener('click', function(){ window.abrirQuizAntiparasitarioMDA(); });
 
     var carouselEl = cont.querySelector('#mdaqCarousel');
