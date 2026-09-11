@@ -198,16 +198,18 @@
   }
 
   // Consulta la ficha real del producto (mismo dominio, se ejecuta en el
-  // navegador de quien visita la tienda) para traer stock Y precio actuales.
-  // Si no hay url cargada, si la ficha no carga, o si no se puede determinar
-  // con certeza, asumimos que SÍ hay stock (mejor no bloquear una venta real
-  // por un chequeo que falló) y usamos el precio de referencia guardado.
-  // Nota: busca el precio y la disponibilidad en el JSON-LD estándar
-  // (schema.org) que Tiendanube agrega a cada ficha, con "sin stock" como
-  // respaldo en el texto para la disponibilidad. Conviene probar esto una vez
-  // pegado en la tienda real y avisarme si algún dato no se lee bien.
+  // navegador de quien visita la tienda) para saber si tiene stock. Si no hay
+  // url cargada, si la ficha no carga, o si no se puede determinar con
+  // certeza, asumimos que SÍ hay stock (mejor no bloquear una venta real por
+  // un chequeo que falló).
+  // Nota: ya NO se trae el precio en vivo — muchos productos (por ejemplo
+  // Bravecto) tienen un precio distinto según el peso/talle, y la ficha solo
+  // expone un precio "por defecto" que no siempre coincide con el que le
+  // corresponde a la mascota del cliente. Para evitar mostrar un precio
+  // incorrecto, el quiz ya no muestra precio: manda directo a la ficha real,
+  // donde el cliente elige el peso exacto y ve el precio correcto ahí.
   function obtenerEstadoProducto(producto){
-    if (!producto.url) return Promise.resolve({ enStock:true, precio:producto.precio });
+    if (!producto.url) return Promise.resolve({ enStock:true });
     var controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var timeoutId = setTimeout(function(){ if (controller) controller.abort(); }, 4000);
     return fetch(producto.url, { credentials:'omit', signal: controller ? controller.signal : undefined })
@@ -216,12 +218,9 @@
         clearTimeout(timeoutId);
         var mStock = html.match(/"availability"\s*:\s*"[^"]*\/(InStock|OutOfStock|LimitedAvailability|PreOrder|SoldOut)"/i);
         var enStock = mStock ? !/outofstock|soldout/i.test(mStock[1]) : (/sin\s*stock/i.test(html) ? false : true);
-        var mPrecio = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
-        var precio = mPrecio ? Math.round(parseFloat(mPrecio[1])) : producto.precio;
-        if (!precio || precio<=0) precio = producto.precio;
-        return { enStock:enStock, precio:precio };
+        return { enStock:enStock };
       })
-      .catch(function(){ clearTimeout(timeoutId); return { enStock:true, precio:producto.precio }; });
+      .catch(function(){ clearTimeout(timeoutId); return { enStock:true }; });
   }
 
   function calcularResultadoAsync(){
@@ -235,12 +234,13 @@
     if (!lista.length) lista = cubren.length ? cubren : base;
     lista = lista.slice();
     return Promise.all(lista.map(obtenerEstadoProducto)).then(function(estados){
-      // Copia cada producto con su precio y stock reales recién consultados,
-      // sin tocar el catálogo estático (para no arrastrar datos viejos entre usos).
+      // Copia cada producto con su stock real recién consultado, sin tocar
+      // el catálogo estático (para no arrastrar datos viejos entre usos). El
+      // precio que se usa para ordenar (prioridad 1 vs 2) es el de
+      // referencia del catálogo, solo para decidir el orden — no se muestra.
       var listaConEstado = lista.map(function(p, i){
         var copia = {};
         for (var k in p) copia[k] = p[k];
-        copia.precio = estados[i].precio;
         copia._enStock = estados[i].enStock;
         return copia;
       });
@@ -345,8 +345,6 @@
       'box-shadow:0 14px 30px -14px rgba(43,35,32,.25);margin-bottom:14px;}',
       '.mdaq-rname{font-family:Fredoka,sans-serif;font-weight:700;font-size:18px;margin:0 0 3px;color:#2B2320;}',
       '.mdaq-rtalle{font-size:12px;color:#8a8177;margin:0 0 10px;}',
-      '.mdaq-rprice{font-family:Fredoka,sans-serif;font-weight:700;font-size:23px;color:'+ROJO+';margin:0 0 10px;}',
-      '.mdaq-rprice span{font-family:Poppins,sans-serif;font-weight:500;font-size:11px;color:#8a8177;}',
       '.mdaq-rtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}',
       '.mdaq-rtag{font-size:11px;font-weight:600;padding:4px 9px;border-radius:100px;background:#F3EFE8;color:#5B5148;}',
       '.mdaq-rtag.on{background:#F7E9EA;color:#8f1330;}',
@@ -368,35 +366,43 @@
       '.mdaq-ralt .n{font-weight:600;color:#2B2320;}',
       '.mdaq-ralt .p{font-weight:700;color:'+ROJO+';}',
       '.mdaq-disclaimer{font-size:10px;color:#a89e92;text-align:center;margin-top:12px;line-height:1.4;}',
-      /* carrusel home: tarjeta del quiz + productos reales */
-      '.mdaq-carwrap{font-family:Poppins,sans-serif;}',
-      '.mdaq-hint{display:flex;align-items:center;gap:6px;padding:14px 18px 4px;',
-      'font-size:12.5px;color:#8a8177;font-weight:600;}',
-      '.mdaq-hint .mdaq-arrow{display:inline-block;animation:mdaqswipehint 1.4s ease-in-out infinite;}',
-      '@keyframes mdaqswipehint{0%,100%{transform:translateX(0);}50%{transform:translateX(6px);}}',
-      '.mdaq-carousel{display:flex;gap:14px;overflow-x:auto;padding:10px 18px 16px;',
-      'scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;}',
-      '.mdaq-carousel::-webkit-scrollbar{display:none;}',
-      '.mdaq-ccard{flex:0 0 78%;scroll-snap-align:center;border-radius:20px;padding:18px 18px 16px;',
-      'display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-decoration:none;box-sizing:border-box;}',
-      '.mdaq-ccard.mdaq-quiz{background:#E0F5FF;border:none;cursor:pointer;flex:0 0 82%;',
-      'justify-content:flex-start;padding:20px 20px 18px;gap:0;}',
-      '.mdaq-ccard.mdaq-prod{background:#fff;border:1.5px solid #E4DED6;color:inherit;}',
-      '.mdaq-ccard-title{font-family:Fredoka,sans-serif;font-weight:700;font-size:16px;color:#2B2320;line-height:1.25;}',
-      '.mdaq-ccard-title.mdaq-small{font-size:14.5px;margin-top:2px;}',
-      '.mdaq-ccard.mdaq-quiz .mdaq-ccard-title{font-size:25px;color:'+ROJO+';line-height:1.15;',
-      'max-width:92%;text-transform:uppercase;margin-bottom:8px;}',
-      '.mdaq-ccard-sub{font-size:12px;color:#5B5148;line-height:1.4;}',
-      '.mdaq-ccard.mdaq-quiz .mdaq-ccard-sub{color:'+ROJO+';opacity:.85;font-size:13.5px;',
-      'margin:0 0 12px;line-height:1.4;max-width:88%;}',
-      '.mdaq-ccard-cta{margin-top:4px;background:'+ROJO+';color:#fff;font-weight:700;font-size:12.5px;',
-      'padding:8px 16px;border-radius:100px;}',
-      '.mdaq-ccard-cta.mdaq-outline{background:none;color:'+ROJO+';border:1.5px solid '+ROJO+';padding:6.5px 14px;}',
-      '.mdaq-ccard.mdaq-quiz .mdaq-ccard-cta{background:#FFF3F6;color:'+ROJO+';border:1.5px solid '+ROJO+';',
-      'padding:6px 16px;font-size:13px;align-self:flex-start;}',
-      '.mdaq-pimg{width:100%!important;height:110px!important;max-height:110px!important;object-fit:contain!important;border-radius:10px;background:#fafaf8;display:block;}',
-      '.mdaq-ccard.mdaq-prod{max-width:220px;}',
-      '.mdaq-pprice{font-family:Fredoka,sans-serif;font-weight:700;font-size:17px;color:#2B2320;margin-top:2px;}'
+      /* banner home: línea debajo de las categorías, invita a hacer el quiz.
+         Mismo estilo celeste/rojo de la tarjeta original del quiz, pero en
+         una sola línea. En celular va apilada y arranca achicada (JS le
+         agrega la clase is-collapsed); en computadora (min-width:900px,
+         mismo corte que MDAQ_BREAKPOINT_DESKTOP en el JS) va todo en una
+         sola línea y arranca abierta. */
+      '.mdaq-banner{font-family:Poppins,sans-serif;width:100%;box-sizing:border-box;',
+      'cursor:pointer;background:#E0F5FF;border-top:1px solid #cdeeFB;border-bottom:1px solid #cdeeFB;}',
+      '.mdaq-banner-inner{max-width:1240px;margin:0 auto;padding:14px 16px 14px 18px;',
+      'display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;text-align:left;',
+      'box-sizing:border-box;}',
+      '.mdaq-banner-text{font-size:12.5px;color:'+ROJO+';line-height:1.35;}',
+      '.mdaq-banner-text b{display:block;font-family:Fredoka,sans-serif;font-weight:700;color:'+ROJO+';',
+      'font-size:15px;text-transform:uppercase;letter-spacing:.01em;margin-bottom:2px;}',
+      '.mdaq-banner-sub{display:block;}',
+      '.mdaq-banner-actions{flex:0 0 auto;display:flex;align-items:center;gap:10px;}',
+      '.mdaq-banner-cta{flex:0 0 auto;background:#FFF3F6;color:'+ROJO+';border:1.5px solid '+ROJO+';',
+      'font-weight:700;font-size:12.5px;padding:8px 18px;border-radius:100px;white-space:nowrap;}',
+      '.mdaq-banner-close{flex:0 0 auto;width:26px;height:26px;border-radius:50%;border:none;',
+      'background:rgba(199,31,62,.09);color:'+ROJO+';font-size:11px;line-height:1;display:flex;',
+      'align-items:center;justify-content:center;cursor:pointer;}',
+      '.mdaq-banner-close .arrow{display:inline-block;transition:transform .2s ease;}',
+      '.mdaq-banner.is-collapsed .mdaq-banner-inner{padding-top:8px;padding-bottom:8px;}',
+      '.mdaq-banner.is-collapsed .mdaq-banner-sub,',
+      '.mdaq-banner.is-collapsed .mdaq-banner-cta{display:none;}',
+      '.mdaq-banner.is-collapsed .mdaq-banner-text b{font-size:12.5px;margin-bottom:0;}',
+      '.mdaq-banner.is-collapsed .mdaq-banner-close .arrow{transform:rotate(180deg);}',
+      '@media (min-width:900px){',
+        '.mdaq-banner-inner{padding:16px 34px;justify-content:space-between;gap:24px;flex-wrap:nowrap;}',
+        '.mdaq-banner-text{font-size:13.5px;flex:1 1 auto;min-width:0;white-space:nowrap;',
+        'overflow:hidden;text-overflow:ellipsis;}',
+        '.mdaq-banner-text b{font-size:17px;display:inline;margin:0 10px 0 0;}',
+        '.mdaq-banner-sub{display:inline;}',
+        '.mdaq-banner-cta{padding:10px 24px;font-size:13px;}',
+        '.mdaq-banner.is-collapsed .mdaq-banner-inner{padding-top:9px;padding-bottom:9px;}',
+        '.mdaq-banner.is-collapsed .mdaq-banner-text b{margin-right:0;}',
+      '}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -601,7 +607,6 @@
         '<div class="mdaq-rproduct">' +
           '<p class="mdaq-rname">'+p.nombre+'</p>' +
           '<p class="mdaq-rtalle">Talle '+r.talle.label+'</p>' +
-          '<p class="mdaq-rprice">'+formatearPrecio(p.precio)+' <span>precio actual en la tienda</span></p>' +
           '<div class="mdaq-rtags">'+coberturaLabels+
             '<span class="mdaq-rtag">'+formatoLabel+'</span>' +
             '<span class="mdaq-rtag">'+duracionLabel+'</span>' +
@@ -609,18 +614,18 @@
           '</div>' +
           notaSinGarrapatas +
           (r.ajustado ? '<div class="mdaq-adjust">Tu mascota está por fuera del talle más grande disponible para esta opción — te mostramos igual la más cercana. Si tenés dudas, escribinos y te ayudamos a elegir.</div>' : '') +
-          '<a class="mdaq-cta" href="'+(p.url||TIENDA_URL)+'" target="_blank" rel="noopener">IR A LA TIENDA</a>' +
+          '<a class="mdaq-cta" href="'+(p.url||TIENDA_URL)+'" target="_blank" rel="noopener">VER PRODUCTO Y PRECIO →</a>' +
+          '<p class="mdaq-disclaimer">En la ficha del producto elegís el peso exacto de tu mascota y ahí vas a ver el precio correspondiente a ese talle.</p>' +
           '<button class="mdaq-retry" id="mdaqRetry">Volver a hacer el quiz</button>' +
         '</div>' +
         (r.otras.length ? (
           '<button class="mdaq-showalt" id="mdaqShowAlt">Mostrar otra opción</button>' +
           '<div class="mdaq-rother" id="mdaqOtras" style="display:none;"><b>Otras opciones</b>' +
           r.otras.map(function(o){
-            return '<a class="mdaq-ralt" href="'+(o.url||TIENDA_URL)+'" target="_blank" rel="noopener"><span class="n">'+o.nombre+'</span><span class="p">'+formatearPrecio(o.precio)+'</span></a>';
+            return '<a class="mdaq-ralt" href="'+(o.url||TIENDA_URL)+'" target="_blank" rel="noopener"><span class="n">'+o.nombre+'</span><span class="p">Ver producto →</span></a>';
           }).join('') +
           '</div>'
         ) : '') +
-        '<p class="mdaq-disclaimer">Precio consultado en el momento en la ficha del producto. Confirmá el talle exacto antes de comprar.</p>' +
       '</div>';
 
     modalBody.innerHTML = html;
@@ -663,94 +668,55 @@
     if (t){ e.preventDefault(); window.abrirQuizAntiparasitarioMDA(); }
   });
 
-  // ---------- Carrusel en la home (tarjeta del quiz + productos reales) ----------
+  // ---------- Línea del quiz en la home (debajo de las categorías) ----------
   function esHome(){
     var ruta = location.pathname.replace(/\/+$/, '');
     return ruta === '' || ruta === '/index.html';
   }
 
-  // Productos reales que se muestran en el carrusel de la home. El nombre y la
-  // bajada quedan escritos a mano (ya verificados), pero la FOTO, el PRECIO y el
-  // STOCK se traen en vivo desde la ficha real al cargar la página — si mañana
-  // cambia la foto del producto en la tienda, se actualiza sola acá también.
-  // Para sumar o sacar productos del carrusel, editar esta lista.
-  var PRODUCTOS_CARRUSEL = [
-    { url:'https://mascotasdelabadia.com.ar/productos/nexgard-spectra-comprimido-antiparasitario-interno-y-externo-para-perros-8714-12sy2/',
-      nombre:'NexGard Spectra Comprimido', sub:'Perros · pulgas, garrapatas e internos' },
-    { url:'https://mascotasdelabadia.com.ar/productos/frontline-plus-pipeta-antipulgas-y-garrapatas-para-perros-8701-1iop9/',
-      nombre:'Frontline Plus Pipeta', sub:'Perros · pulgas y garrapatas' },
-    { url:'https://mascotasdelabadia.com.ar/productos/seresto-perros-y-gatos-9205-1qava/',
-      nombre:'Seresto Collar', sub:'Perros y gatos · collar de larga duración' },
-    { url:'https://mascotasdelabadia.com.ar/productos/bravecto-pipeta-antipulgas-y-garrapatas-para-gatos-10502-1s54g/',
-      nombre:'Bravecto Pipeta', sub:'Gatos · pulgas y garrapatas, cada 3 meses' }
-  ];
+  // A partir de qué ancho de pantalla se considera "computadora": tiene que
+  // coincidir con el breakpoint usado en el CSS de inyectarEstilos() (más
+  // abajo, @media (min-width:900px)), porque acá decidimos si la línea
+  // arranca abierta (computadora) o achicada (celular).
+  var MDAQ_BREAKPOINT_DESKTOP = 900;
 
-  // Busca en la ficha real: foto (og:image), precio y stock. Si algo esencial no
-  // se pudo leer (falla la red, cambia el HTML de la tienda, etc.) devuelve null
-  // y esa tarjeta directamente no se muestra, en vez de mostrar datos incompletos.
-  function obtenerDatosVitrina(item){
-    return fetch(item.url, { credentials:'omit' })
-      .then(function(res){ return res.text(); })
-      .then(function(html){
-        var doc = new DOMParser().parseFromString(html, 'text/html');
-        var imgTag = doc.querySelector('meta[property="og:image"]');
-        var imagen = imgTag ? imgTag.getAttribute('content') : '';
-        var mPrecio = html.match(/"price"\s*:\s*"?(\d+(?:\.\d+)?)"?/i);
-        var precio = mPrecio ? Math.round(parseFloat(mPrecio[1])) : null;
-        var mStock = html.match(/"availability"\s*:\s*"[^"]*\/(InStock|OutOfStock|LimitedAvailability|PreOrder|SoldOut)"/i);
-        var enStock = mStock ? !/outofstock|soldout/i.test(mStock[1]) : !/sin\s*stock/i.test(html);
-        if (!imagen || !precio) return null;
-        return { url:item.url, nombre:item.nombre, sub:item.sub, imagen:imagen, precio:precio, enStock:enStock };
-      })
-      .catch(function(){ return null; });
+  // Ubica la fila de categorías principales de la home (MARCAS, PERROS,
+  // GATOS, etc.) para insertar la línea del quiz justo debajo. Busca un
+  // enlace VISIBLE (offsetParent/offsetWidth/offsetHeight reales — así se
+  // descarta cualquier duplicado oculto del menú mobile) cuyo texto sea
+  // exactamente "PERROS" o "GATOS", y desde ahí sube hasta encontrar el
+  // contenedor que ocupa el ancho completo de esa fila. Si no se encuentra
+  // nada, se usa un respaldo más simple.
+  function esVisible(el){
+    return !!el && el.offsetParent !== null && el.offsetWidth > 0 && el.offsetHeight > 0;
   }
-
-  // Ubica dónde insertar el carrusel del quiz. Dos estrategias, en orden:
-  // 1) Justo DESPUÉS del carrusel de imágenes principal de la home (que usa
-  //    la librería Swiper.js — confirmado inspeccionando la tienda: las
-  //    fotos tienen clases "swiper-lazy"/"swiper-lazy-loaded" de esa
-  //    librería, aunque el tema le puso un nombre propio a cada slide).
-  //    Se sube desde una foto del carrusel hasta encontrar el contenedor
-  //    raíz (clase exacta "swiper" o "swiper-container") y se devuelve el
-  //    elemento que sigue a continuación, para insertar justo ahí.
-  // 2) Si no se encuentra: justo arriba del título "Marcas" (la sección de
-  //    logos de marcas), que también suele estar después de ese carrusel.
-  // Si ninguna de las dos aparece, se usa un respaldo más simple.
   function encontrarAnclaje(){
-    var slide = document.querySelector('.slider-slide, .swiper-slide');
-    if (slide){
-      var el = slide;
-      for (var j=0;j<10 && el.parentElement && el.parentElement!==document.body;j++){
-        el = el.parentElement;
-        var clases = ' ' + (el.className||'').toString() + ' ';
-        if (clases.indexOf(' swiper ')!==-1 || clases.indexOf(' swiper-container ')!==-1){
-          if (el.nextElementSibling) return el.nextElementSibling;
-          break;
-        }
-      }
+    var candidatos = document.querySelectorAll('a, span, li');
+    var objetivo = null;
+    for (var i=0;i<candidatos.length;i++){
+      var txt = (candidatos[i].textContent||'').trim().toUpperCase();
+      if (txt!=='PERROS' && txt!=='GATOS') continue;
+      if (!esVisible(candidatos[i])) continue;
+      objetivo = candidatos[i];
+      break;
     }
-    var titulos = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
-    for (var i=0;i<titulos.length;i++){
-      var txt = (titulos[i].textContent||'').trim().toUpperCase();
-      if (txt!=='MARCAS') continue;
-      var el2 = titulos[i];
-      for (var k=0;k<6 && el2.parentElement && el2.parentElement!==document.body;k++){
-        if (el2.offsetWidth >= window.innerWidth*0.7) return el2;
-        el2 = el2.parentElement;
-      }
-      return titulos[i];
+    if (!objetivo) return null;
+    var fila = objetivo;
+    for (var k=0;k<8 && fila.parentElement && fila.parentElement!==document.body;k++){
+      fila = fila.parentElement;
+      if (fila.offsetWidth >= window.innerWidth*0.7) break;
     }
-    return null;
+    return fila.nextElementSibling || null;
   }
 
-  // El carrusel de imágenes principal puede tardar en aparecer en la página
-  // (se arma con JavaScript después de cargar, no está en el HTML inicial).
-  // En vez de reintentar un número fijo de veces, observamos la página con
-  // MutationObserver y construimos el carrusel del quiz apenas aparezca el
-  // carrusel de fotos — sin importar cuánto tarde. Como límite de seguridad,
-  // si a los 15 segundos todavía no apareció, se resigna a un respaldo (para
-  // que el quiz no falte del todo si algo cambia en la tienda).
-  function construirCarruselHome(){
+  // La fila de categorías puede tardar en aparecer en la página (se arma con
+  // JavaScript después de cargar, no está en el HTML inicial). En vez de
+  // reintentar un número fijo de veces, observamos la página con
+  // MutationObserver y construimos la línea del quiz apenas aparezca —
+  // sin importar cuánto tarde. Como límite de seguridad, si a los 15
+  // segundos todavía no apareció, se resigna a un respaldo (para que el
+  // quiz no falte del todo si algo cambia en la tienda).
+  function construirBannerHome(){
     if (!esHome()) return;
     inyectarEstilos();
     var yaConstruido = false;
@@ -759,7 +725,7 @@
       var anclaje = encontrarAnclaje();
       if (anclaje){
         yaConstruido = true;
-        insertarCarruselHome(anclaje);
+        insertarBannerHome(anclaje);
         return true;
       }
       return false;
@@ -772,57 +738,50 @@
     setTimeout(function(){
       if (yaConstruido) return;
       if (observer) observer.disconnect();
-      insertarCarruselHome(null);
+      insertarBannerHome(null);
       yaConstruido = true;
     }, 15000);
   }
 
-  function insertarCarruselHome(anclaje){
+  // Línea única (sin fotos de productos ni carrusel), del mismo estilo que
+  // tenía la tarjeta original del quiz. En celular arranca achicada — solo
+  // se ve el título — y se agranda al tocarla; en computadora arranca
+  // abierta, con todo en una sola línea. La flechita de la derecha
+  // achica/agranda sin abrir el quiz; tocar el resto de la línea (ya
+  // abierta) abre el quiz.
+  function insertarBannerHome(anclaje){
     var cont = document.createElement('div');
-    cont.className = 'mdaq-carwrap';
+    cont.className = 'mdaq-banner';
     cont.innerHTML =
-      '<div class="mdaq-hint"><span>Deslizá para ver más</span><span class="mdaq-arrow">→</span></div>' +
-      '<div class="mdaq-carousel" id="mdaqCarousel">' +
-        '<div class="mdaq-ccard mdaq-quiz" id="mdaqQuizCard">' +
-          '<div class="mdaq-ccard-title">¿Qué<br>antiparasitario<br>necesita tu<br>mascota?</div>' +
-          '<div class="mdaq-ccard-sub">Respondé 4 preguntas y te decimos cuál es el indicado!</div>' +
-          '<div class="mdaq-ccard-cta">Hacer Quiz!</div>' +
+      '<div class="mdaq-banner-inner">' +
+        '<span class="mdaq-banner-text"><b>¿Qué antiparasitario necesita tu mascota?</b><span class="mdaq-banner-sub">Respondé 4 preguntas y te decimos cuál es el indicado</span></span>' +
+        '<div class="mdaq-banner-actions">' +
+          '<span class="mdaq-banner-cta">Hacer Quiz!</span>' +
+          '<button type="button" class="mdaq-banner-close" aria-label="Abrir o cerrar"><span class="arrow">▾</span></button>' +
         '</div>' +
       '</div>';
+    if (window.innerWidth < MDAQ_BREAKPOINT_DESKTOP) cont.classList.add('is-collapsed');
+
     if (anclaje && anclaje.parentNode){
       anclaje.parentNode.insertBefore(cont, anclaje);
     } else {
-      var header = document.querySelector('header');
-      if (header && header.parentNode){
-        header.parentNode.insertBefore(cont, header.nextSibling);
-      } else {
-        document.body.insertBefore(cont, document.body.firstChild);
-      }
+      document.body.insertBefore(cont, document.body.firstChild);
     }
-    cont.querySelector('#mdaqQuizCard').addEventListener('click', function(){ window.abrirQuizAntiparasitarioMDA(); });
 
-    var carouselEl = cont.querySelector('#mdaqCarousel');
-    Promise.all(PRODUCTOS_CARRUSEL.map(obtenerDatosVitrina)).then(function(items){
-      items.forEach(function(p){
-        if (!p || !p.enStock) return;
-        var a = document.createElement('a');
-        a.className = 'mdaq-ccard mdaq-prod';
-        a.href = p.url; a.target = '_blank'; a.rel = 'noopener';
-        a.innerHTML =
-          '<img class="mdaq-pimg" src="'+p.imagen+'" alt="'+p.nombre+'" loading="lazy">' +
-          '<div class="mdaq-ccard-title mdaq-small">'+p.nombre+'</div>' +
-          '<div class="mdaq-ccard-sub">'+p.sub+'</div>' +
-          '<div class="mdaq-pprice">'+formatearPrecio(p.precio)+'</div>' +
-          '<div class="mdaq-ccard-cta mdaq-outline">Ver producto →</div>';
-        carouselEl.appendChild(a);
-      });
+    cont.querySelector('.mdaq-banner-close').addEventListener('click', function(e){
+      e.stopPropagation();
+      cont.classList.toggle('is-collapsed');
+    });
+    cont.addEventListener('click', function(){
+      if (cont.classList.contains('is-collapsed')){ cont.classList.remove('is-collapsed'); return; }
+      window.abrirQuizAntiparasitarioMDA();
     });
   }
 
   if (document.readyState==='complete' || document.readyState==='interactive'){
-    construirCarruselHome();
+    construirBannerHome();
   } else {
-    document.addEventListener('DOMContentLoaded', construirCarruselHome);
+    document.addEventListener('DOMContentLoaded', construirBannerHome);
   }
 
 })();
