@@ -705,6 +705,26 @@
       .catch(function(){ return null; });
   }
 
+  // Busca la barra de "Categorías / Marcas" por su TEXTO visible (no depende de
+  // clases del tema, que no conocemos) y devuelve el contenedor de esa fila
+  // completa, para insertar el carrusel justo arriba. Si no la encuentra,
+  // devuelve null y se usa un respaldo más simple.
+  function encontrarAnclaje(){
+    var palabras = ['MARCAS','CATEGORÍAS','CATEGORIAS'];
+    var candidatos = document.querySelectorAll('a, button, span, li, div');
+    for (var i=0;i<candidatos.length;i++){
+      var txt = (candidatos[i].textContent||'').trim().toUpperCase();
+      if (palabras.indexOf(txt)===-1) continue;
+      var el = candidatos[i];
+      for (var j=0;j<6 && el.parentElement && el.parentElement!==document.body;j++){
+        if (el.offsetWidth >= window.innerWidth*0.7) return el;
+        el = el.parentElement;
+      }
+      return candidatos[i];
+    }
+    return null;
+  }
+
   function construirCarruselHome(){
     if (!esHome()) return;
     inyectarEstilos();
@@ -720,11 +740,16 @@
           '<div class="mdaq-ccard-cta">Hacer Quiz!</div>' +
         '</div>' +
       '</div>';
-    var header = document.querySelector('header');
-    if (header && header.parentNode){
-      header.parentNode.insertBefore(cont, header.nextSibling);
+    var anclaje = encontrarAnclaje();
+    if (anclaje && anclaje.parentNode){
+      anclaje.parentNode.insertBefore(cont, anclaje);
     } else {
-      document.body.insertBefore(cont, document.body.firstChild);
+      var header = document.querySelector('header');
+      if (header && header.parentNode){
+        header.parentNode.insertBefore(cont, header.nextSibling);
+      } else {
+        document.body.insertBefore(cont, document.body.firstChild);
+      }
     }
     cont.querySelector('#mdaqQuizCard').addEventListener('click', function(){ window.abrirQuizAntiparasitarioMDA(); });
 
