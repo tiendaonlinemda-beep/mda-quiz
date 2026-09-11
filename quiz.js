@@ -743,23 +743,38 @@
     return null;
   }
 
-  // La sección "Marcas" puede tardar en aparecer en la página (algunos temas
-  // la cargan de forma diferida). Reintentamos buscarla varias veces (hasta
-  // 5 segundos) antes de resignarnos a un respaldo, para no insertar arriba
-  // de todo sin necesidad.
+  // El carrusel de imágenes principal puede tardar en aparecer en la página
+  // (se arma con JavaScript después de cargar, no está en el HTML inicial).
+  // En vez de reintentar un número fijo de veces, observamos la página con
+  // MutationObserver y construimos el carrusel del quiz apenas aparezca el
+  // carrusel de fotos — sin importar cuánto tarde. Como límite de seguridad,
+  // si a los 15 segundos todavía no apareció, se resigna a un respaldo (para
+  // que el quiz no falte del todo si algo cambia en la tienda).
   function construirCarruselHome(){
     if (!esHome()) return;
     inyectarEstilos();
-    esperarAnclajeYConstruir(20);
-  }
-
-  function esperarAnclajeYConstruir(intentosRestantes){
-    var anclaje = encontrarAnclaje();
-    if (!anclaje && intentosRestantes > 0){
-      setTimeout(function(){ esperarAnclajeYConstruir(intentosRestantes - 1); }, 250);
-      return;
+    var yaConstruido = false;
+    function intentar(){
+      if (yaConstruido) return true;
+      var anclaje = encontrarAnclaje();
+      if (anclaje){
+        yaConstruido = true;
+        insertarCarruselHome(anclaje);
+        return true;
+      }
+      return false;
     }
-    insertarCarruselHome(anclaje);
+    if (intentar()) return;
+    var observer = (typeof MutationObserver !== 'undefined') ? new MutationObserver(function(){
+      if (intentar() && observer) observer.disconnect();
+    }) : null;
+    if (observer) observer.observe(document.body, { childList:true, subtree:true });
+    setTimeout(function(){
+      if (yaConstruido) return;
+      if (observer) observer.disconnect();
+      insertarCarruselHome(null);
+      yaConstruido = true;
+    }, 15000);
   }
 
   function insertarCarruselHome(anclaje){
