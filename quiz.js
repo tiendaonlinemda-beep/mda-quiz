@@ -705,22 +705,25 @@
       .catch(function(){ return null; });
   }
 
-  // Busca la barra de "Categorías / Marcas" por su TEXTO visible (no depende de
-  // clases del tema, que no conocemos) y devuelve el contenedor de esa fila
-  // completa, para insertar el carrusel justo arriba. Si no la encuentra,
-  // devuelve null y se usa un respaldo más simple.
+  // Busca el título "Marcas" (el de la sección de logos de marcas: Royal
+  // Canin, Eukanuba, etc.), que en esta tienda aparece siempre justo DESPUÉS
+  // del carrusel de imágenes principal de la home. Solo mira títulos (h1-h6)
+  // para no confundirse con el menú de categorías (que puede estar oculto
+  // dentro del ícono ☰ en pantallas angostas y daba falsos positivos).
+  // Devuelve el contenedor de esa sección completa, para insertar el
+  // carrusel del quiz justo arriba (o sea, justo debajo del carrusel de
+  // imágenes). Si no la encuentra, devuelve null y se usa un respaldo.
   function encontrarAnclaje(){
-    var palabras = ['MARCAS','CATEGORÍAS','CATEGORIAS'];
-    var candidatos = document.querySelectorAll('a, button, span, li, div');
-    for (var i=0;i<candidatos.length;i++){
-      var txt = (candidatos[i].textContent||'').trim().toUpperCase();
-      if (palabras.indexOf(txt)===-1) continue;
-      var el = candidatos[i];
+    var titulos = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
+    for (var i=0;i<titulos.length;i++){
+      var txt = (titulos[i].textContent||'').trim().toUpperCase();
+      if (txt!=='MARCAS') continue;
+      var el = titulos[i];
       for (var j=0;j<6 && el.parentElement && el.parentElement!==document.body;j++){
         if (el.offsetWidth >= window.innerWidth*0.7) return el;
         el = el.parentElement;
       }
-      return candidatos[i];
+      return titulos[i];
     }
     return null;
   }
