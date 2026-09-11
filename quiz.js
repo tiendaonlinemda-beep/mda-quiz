@@ -705,23 +705,38 @@
       .catch(function(){ return null; });
   }
 
-  // Busca el título "Marcas" (el de la sección de logos de marcas: Royal
-  // Canin, Eukanuba, etc.), que en esta tienda aparece siempre justo DESPUÉS
-  // del carrusel de imágenes principal de la home. Solo mira títulos (h1-h6)
-  // para no confundirse con el menú de categorías (que puede estar oculto
-  // dentro del ícono ☰ en pantallas angostas y daba falsos positivos).
-  // Devuelve el contenedor de esa sección completa, para insertar el
-  // carrusel del quiz justo arriba (o sea, justo debajo del carrusel de
-  // imágenes). Si no la encuentra, devuelve null y se usa un respaldo.
+  // Ubica dónde insertar el carrusel del quiz. Dos estrategias, en orden:
+  // 1) Justo DESPUÉS del carrusel de imágenes principal de la home (que usa
+  //    la librería Swiper.js — confirmado inspeccionando la tienda: las
+  //    fotos tienen clases "swiper-lazy"/"swiper-lazy-loaded" de esa
+  //    librería, aunque el tema le puso un nombre propio a cada slide).
+  //    Se sube desde una foto del carrusel hasta encontrar el contenedor
+  //    raíz (clase exacta "swiper" o "swiper-container") y se devuelve el
+  //    elemento que sigue a continuación, para insertar justo ahí.
+  // 2) Si no se encuentra: justo arriba del título "Marcas" (la sección de
+  //    logos de marcas), que también suele estar después de ese carrusel.
+  // Si ninguna de las dos aparece, se usa un respaldo más simple.
   function encontrarAnclaje(){
+    var slide = document.querySelector('.slider-slide, .swiper-slide');
+    if (slide){
+      var el = slide;
+      for (var j=0;j<10 && el.parentElement && el.parentElement!==document.body;j++){
+        el = el.parentElement;
+        var clases = ' ' + (el.className||'').toString() + ' ';
+        if (clases.indexOf(' swiper ')!==-1 || clases.indexOf(' swiper-container ')!==-1){
+          if (el.nextElementSibling) return el.nextElementSibling;
+          break;
+        }
+      }
+    }
     var titulos = document.querySelectorAll('h1,h2,h3,h4,h5,h6');
     for (var i=0;i<titulos.length;i++){
       var txt = (titulos[i].textContent||'').trim().toUpperCase();
       if (txt!=='MARCAS') continue;
-      var el = titulos[i];
-      for (var j=0;j<6 && el.parentElement && el.parentElement!==document.body;j++){
-        if (el.offsetWidth >= window.innerWidth*0.7) return el;
-        el = el.parentElement;
+      var el2 = titulos[i];
+      for (var k=0;k<6 && el2.parentElement && el2.parentElement!==document.body;k++){
+        if (el2.offsetWidth >= window.innerWidth*0.7) return el2;
+        el2 = el2.parentElement;
       }
       return titulos[i];
     }
