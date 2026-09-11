@@ -728,10 +728,26 @@
     return null;
   }
 
+  // La sección "Marcas" puede tardar en aparecer en la página (algunos temas
+  // la cargan de forma diferida). Reintentamos buscarla varias veces (hasta
+  // 5 segundos) antes de resignarnos a un respaldo, para no insertar arriba
+  // de todo sin necesidad.
   function construirCarruselHome(){
     if (!esHome()) return;
     inyectarEstilos();
+    esperarAnclajeYConstruir(20);
+  }
 
+  function esperarAnclajeYConstruir(intentosRestantes){
+    var anclaje = encontrarAnclaje();
+    if (!anclaje && intentosRestantes > 0){
+      setTimeout(function(){ esperarAnclajeYConstruir(intentosRestantes - 1); }, 250);
+      return;
+    }
+    insertarCarruselHome(anclaje);
+  }
+
+  function insertarCarruselHome(anclaje){
     var cont = document.createElement('div');
     cont.className = 'mdaq-carwrap';
     cont.innerHTML =
@@ -743,7 +759,6 @@
           '<div class="mdaq-ccard-cta">Hacer Quiz!</div>' +
         '</div>' +
       '</div>';
-    var anclaje = encontrarAnclaje();
     if (anclaje && anclaje.parentNode){
       anclaje.parentNode.insertBefore(cont, anclaje);
     } else {
