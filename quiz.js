@@ -400,8 +400,14 @@
         '.mdaq-banner-text b{font-size:17px;display:inline;margin:0 10px 0 0;}',
         '.mdaq-banner-sub{display:inline;}',
         '.mdaq-banner-cta{padding:10px 24px;font-size:13px;}',
-        '.mdaq-banner.is-collapsed .mdaq-banner-inner{padding-top:9px;padding-bottom:9px;}',
-        '.mdaq-banner.is-collapsed .mdaq-banner-text b{margin-right:0;}',
+        // En computadora no se puede achicar: se saca la flechita y se
+        // fuerza a que quede siempre abierta (por si alguien agranda la
+        // ventana desde un ancho de celular sin recargar la página).
+        '.mdaq-banner-close{display:none;}',
+        '.mdaq-banner.is-collapsed .mdaq-banner-inner{padding-top:16px;padding-bottom:16px;}',
+        '.mdaq-banner.is-collapsed .mdaq-banner-sub,',
+        '.mdaq-banner.is-collapsed .mdaq-banner-cta{display:inline;}',
+        '.mdaq-banner.is-collapsed .mdaq-banner-text b{font-size:17px;margin:0 10px 0 0;}',
       '}'
     ].join('');
     document.head.appendChild(style);
