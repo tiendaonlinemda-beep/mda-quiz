@@ -74,9 +74,9 @@
       talles:[{max:10,label:'hasta 10 kg (talle chico)'},{max:999,label:'más de 10 kg (talle grande)'}] },
 
     // GATO — solo pulgas y garrapatas
-    { id:'frontline_gato', especie:'gato', cobertura:'externa', nombre:'Frontline Spot On Pipeta Antipulgas y Garrapatas Gatos',
-      formato:'pipeta', duracion:'mensual', precio:7900, regalo:false, prioridad:1,
-      url:'https://mascotasdelabadia.com.ar/productos/frontline-spot-on-pipeta-antipulgas-y-garrapatas-gatos-8715-orb40/',
+    { id:'frontline_gato', especie:'gato', cobertura:'externa', nombre:'Frontline Plus Pipeta Antipulgas y Garrapatas para Gatos',
+      formato:'pipeta', duracion:'mensual', precio:12700, regalo:false, prioridad:1,
+      url:'https://mascotasdelabadia.com.ar/productos/frontline-plus-pipeta-antipulgas-y-garrapatas-para-gatos-8702-1suxg/',
       talles:[{max:999,label:'talle único'}] },
     { id:'bravecto_gato', especie:'gato', cobertura:'externa', nombre:'Bravecto Pipeta Gatos',
       formato:'pipeta', duracion:'3meses', precio:41800, regalo:false, prioridad:1,
