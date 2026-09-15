@@ -681,27 +681,38 @@
   var MDAQ_BREAKPOINT_DESKTOP = 900;
 
   // Ubica la fila de categorías principales de la home (MARCAS, PERROS,
-  // GATOS, etc.) para insertar la línea del quiz justo debajo. Busca un
-  // enlace VISIBLE (offsetParent/offsetWidth/offsetHeight reales — así se
-  // descarta cualquier duplicado oculto del menú mobile) cuyo texto sea
-  // exactamente "PERROS" o "GATOS", y desde ahí sube hasta encontrar el
-  // contenedor que ocupa el ancho completo de esa fila. Si no se encuentra
-  // nada, se usa un respaldo más simple.
+  // GATOS, etc.) para insertar la línea del quiz justo debajo. Busca todos
+  // los enlaces VISIBLES cuyo texto sea exactamente "PERROS" o "GATOS" y se
+  // queda con el que está más arriba de la página — así se descarta
+  // cualquier duplicado más abajo (por ejemplo en el pie de página).
+  // "Visible" acá NO es solo offsetWidth/offsetHeight: un menú deslizable
+  // (el de "categorías" en celular, por ejemplo) puede seguir teniendo
+  // ancho y alto aunque esté escondido con un transform fuera de la
+  // pantalla, así que además chequeamos que el elemento esté realmente
+  // dentro del ancho visible de la ventana en este momento. Si el menú
+  // está cerrado, sus enlaces no van a pasar este chequeo (y no se va a
+  // usar como ancla); si no se encuentra nada, se usa un respaldo simple.
   function esVisible(el){
-    return !!el && el.offsetParent !== null && el.offsetWidth > 0 && el.offsetHeight > 0;
+    if (!el || el.offsetParent === null || el.offsetWidth <= 0 || el.offsetHeight <= 0) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
+    if (r.right <= 0 || r.left >= window.innerWidth) return false;
+    if (r.bottom <= 0 || r.top >= window.innerHeight * 3) return false;
+    return true;
   }
   function encontrarAnclaje(){
     var candidatos = document.querySelectorAll('a, span, li');
-    var objetivo = null;
+    var mejor = null;
+    var mejorTop = Infinity;
     for (var i=0;i<candidatos.length;i++){
       var txt = (candidatos[i].textContent||'').trim().toUpperCase();
       if (txt!=='PERROS' && txt!=='GATOS') continue;
       if (!esVisible(candidatos[i])) continue;
-      objetivo = candidatos[i];
-      break;
+      var top = candidatos[i].getBoundingClientRect().top + window.scrollY;
+      if (top < mejorTop){ mejorTop = top; mejor = candidatos[i]; }
     }
-    if (!objetivo) return null;
-    var fila = objetivo;
+    if (!mejor) return null;
+    var fila = mejor;
     for (var k=0;k<8 && fila.parentElement && fila.parentElement!==document.body;k++){
       fila = fila.parentElement;
       if (fila.offsetWidth >= window.innerWidth*0.7) break;
