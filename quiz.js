@@ -369,9 +369,10 @@
       /* banner home: línea debajo de las categorías, invita a hacer el quiz.
          Mismo estilo celeste/rojo de la tarjeta original del quiz, pero en
          una sola línea. En celular va apilada y arranca achicada (JS le
-         agrega la clase is-collapsed); en computadora (min-width:900px,
-         mismo corte que MDAQ_BREAKPOINT_DESKTOP en el JS) va todo en una
-         sola línea y arranca abierta. */
+         agrega la clase is-collapsed); en computadora (min-width:768px —
+         el mismo corte "md" que usa la propia tienda para mostrar la fila
+         de categorías completa, y que coincide con MDAQ_BREAKPOINT_DESKTOP
+         en el JS) va todo en una sola línea y arranca abierta. */
       '.mdaq-banner{font-family:Poppins,sans-serif;width:100%;box-sizing:border-box;',
       'cursor:pointer;background:#E0F5FF;border-top:1px solid #cdeeFB;border-bottom:1px solid #cdeeFB;}',
       '.mdaq-banner-inner{max-width:1240px;margin:0 auto;padding:14px 16px 14px 18px;',
@@ -393,7 +394,7 @@
       '.mdaq-banner.is-collapsed .mdaq-banner-cta{display:none;}',
       '.mdaq-banner.is-collapsed .mdaq-banner-text b{font-size:12.5px;margin-bottom:0;}',
       '.mdaq-banner.is-collapsed .mdaq-banner-close .arrow{transform:rotate(180deg);}',
-      '@media (min-width:900px){',
+      '@media (min-width:768px){',
         '.mdaq-banner-inner{padding:16px 34px;justify-content:space-between;gap:24px;flex-wrap:nowrap;}',
         '.mdaq-banner-text{font-size:13.5px;flex:1 1 auto;min-width:0;white-space:nowrap;',
         'overflow:hidden;text-overflow:ellipsis;}',
@@ -680,11 +681,14 @@
     return ruta === '' || ruta === '/index.html';
   }
 
-  // A partir de qué ancho de pantalla se considera "computadora": tiene que
+  // A partir de qué ancho de pantalla se considera "computadora": 768px,
+  // el mismo corte "md" que usa la propia tienda para mostrar la fila de
+  // categorías completa en vez del menú hamburguesa (confirmado con la
+  // clase "d-md-block" que tiene esa fila en el HTML real). Tiene que
   // coincidir con el breakpoint usado en el CSS de inyectarEstilos() (más
-  // abajo, @media (min-width:900px)), porque acá decidimos si la línea
+  // abajo, @media (min-width:768px)), porque acá decidimos si la línea
   // arranca abierta (computadora) o achicada (celular).
-  var MDAQ_BREAKPOINT_DESKTOP = 900;
+  var MDAQ_BREAKPOINT_DESKTOP = 768;
 
   // Ubica dónde insertar la línea del quiz: justo después de la etiqueta
   // <header> de la tienda. Se confirmó inspeccionando la página en vivo
