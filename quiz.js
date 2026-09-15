@@ -4,6 +4,8 @@
   var LOGO_URL = 'https://d1a9qnv764bsoo.cloudfront.net/stores/002/130/106/rte/dog_optimized_q.png';
   var TIENDA_URL = 'https://mascotasdelabadia.com.ar/salud/';
   var ROJO = '#c71f3e';
+  var MDAQ_ICONO_PERRO = 'https://cdn.jsdelivr.net/gh/tiendaonlinemda-beep/mda-quiz@main/perro-icono.png';
+  var MDAQ_ICONO_GATO = 'https://cdn.jsdelivr.net/gh/tiendaonlinemda-beep/mda-quiz@main/gato-icono.png';
 
   // ---------- Catálogo real ----------
   // prioridad: 1 = producto elegido/curado (se recomienda primero); 2 = alternativa
@@ -328,6 +330,7 @@
       'text-align:center;cursor:pointer;}',
       '.mdaq-opt2 .mdaq-icon{width:46px;height:46px;margin:0 auto 8px;}',
       '.mdaq-opt2 .mdaq-icon svg{width:100%;height:100%;}',
+      '.mdaq-opt2 .mdaq-icon img{width:100%;height:100%;object-fit:contain;display:block;}',
       '.mdaq-opt2 .mdaq-lbl{font-size:14px;font-weight:600;color:#2B2320;}',
       '.mdaq-opt2:hover{border-color:#d8b8bf;}',
       '.mdaq-loading{text-align:center;padding:30px 0;color:#8a8177;font-size:13px;}',
@@ -414,21 +417,6 @@
     document.head.appendChild(style);
   }
 
-  function iconoPerro(activo){
-    var color = activo ? ROJO : '#5B5148';
-    return '<svg viewBox="0 0 48 48" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+
-      '<path d="M14 20c-3-2-6-7-4-11 3-1 7 1 8 5"/><path d="M34 20c3-2 6-7 4-11 -3-1-7 1-8 5"/>'+
-      '<ellipse cx="24" cy="27" rx="13" ry="11"/><circle cx="19" cy="25" r="1.4" fill="'+color+'"/>'+
-      '<circle cx="29" cy="25" r="1.4" fill="'+color+'"/><path d="M20 32c1.5 1.5 6.5 1.5 8 0"/></svg>';
-  }
-  function iconoGato(activo){
-    var color = activo ? ROJO : '#5B5148';
-    return '<svg viewBox="0 0 48 48" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+
-      '<path d="M13 19l-3-9 8 5"/><path d="M35 19l3-9-8 5"/><ellipse cx="24" cy="27" rx="13" ry="11"/>'+
-      '<circle cx="19" cy="25" r="1.4" fill="'+color+'"/><circle cx="29" cy="25" r="1.4" fill="'+color+'"/>'+
-      '<path d="M20 31l4 2 4-2"/><path d="M14 29l-4-1M14 32l-4 1M34 29l4-1M34 32l4 1"/></svg>';
-  }
-
   function crearOverlay(){
     overlay = document.createElement('div');
     overlay.className = 'mdaq-overlay';
@@ -496,8 +484,8 @@
         '<p class="mdaq-kicker">Pregunta 1</p>' +
         '<h2 class="mdaq-title">¿Es para tu perro o tu gato?</h2>' +
         '<div class="mdaq-optrow">' +
-          '<div class="mdaq-opt2" data-v="perro"><div class="mdaq-icon">'+iconoPerro(true)+'</div><div class="mdaq-lbl">Perro</div></div>' +
-          '<div class="mdaq-opt2" data-v="gato"><div class="mdaq-icon">'+iconoGato(false)+'</div><div class="mdaq-lbl">Gato</div></div>' +
+          '<div class="mdaq-opt2" data-v="perro"><div class="mdaq-icon"><img src="'+MDAQ_ICONO_PERRO+'" alt="Perro" loading="lazy"></div><div class="mdaq-lbl">Perro</div></div>' +
+          '<div class="mdaq-opt2" data-v="gato"><div class="mdaq-icon"><img src="'+MDAQ_ICONO_GATO+'" alt="Gato" loading="lazy"></div><div class="mdaq-lbl">Gato</div></div>' +
         '</div>' +
       '</div>';
     Array.prototype.forEach.call(modalBody.querySelectorAll('.mdaq-opt2'), function(el){
@@ -525,7 +513,7 @@
     var opciones = [
       { v:'externa', label:'Solo pulgas y garrapatas' },
       { v:'completa', label:'También parásitos internos (lombrices, gusano del corazón)' },
-      { v:'interna_sola', label:'Pulgas y parásitos internos (no me preocupan las garrapatas)' }
+      { v:'interna_sola', label:'Pulgas y parásitos internos' }
     ];
     var html = '<div class="mdaq-body"><p class="mdaq-kicker">Pregunta 3</p><h2 class="mdaq-title">¿Qué necesita cubrir?</h2>';
     opciones.forEach(function(o){
