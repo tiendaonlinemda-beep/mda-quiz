@@ -769,3 +769,16 @@
   }
 
 })();
+
+// Abre el quiz directo con el link mascotasdelabadia.com.ar/#quiz
+// (para compartirlo en redes y WhatsApp).
+(function(){
+  function abrirSiCorresponde(){
+    if (location.hash.toLowerCase() === '#quiz' && typeof window.abrirQuizAntiparasitarioMDA === 'function'){
+      window.abrirQuizAntiparasitarioMDA();
+    }
+  }
+  if (document.readyState === 'complete') { setTimeout(abrirSiCorresponde, 300); }
+  else { window.addEventListener('load', function(){ setTimeout(abrirSiCorresponde, 300); }); }
+  window.addEventListener('hashchange', abrirSiCorresponde);
+})();
